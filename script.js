@@ -34,17 +34,38 @@ const portalConfig = {
   innerAngleFactor: 0.00035,
   minStroke: 2.1,
   strokeDecay: 0.78,
+  glitchDurationMs: 180,
+  glitchMaxOffsetPx: 18,
+  glitchMaxAngle: 0.11,
+  glitchLayerVariance: 0.18,
+  glitchChromaticSplitPx: 10,
+  glitchChromaticAlpha: 0.65,
+  glitchChromaticColorA: "#ff365b",
+  glitchChromaticColorB: "#2ee6ff",
+  colorBurstPalette: ["#ff315f", "#ff8b2a", "#ffe75b", "#4eff88", "#2ee6ff", "#6e7bff", "#c66bff"],
+  colorBurstSegmentMs: 85,
   color: "#6FA8DD"
 };
+
+// const CLICK_BEHAVIORS = {
+//   COLOR_FLIP: "color-flip",
+//   GLITCH: "glitch"
+// };
 
 const scene = {
   width: 0,
   height: 0,
   pointer: { x: 0, y: 0 },
   pointerTarget: { x: 0, y: 0 },
+  isPointerHeld: false,
   tick: 0,
   useIdle: false,
   reduceMotion: false,
+  // glitchUntilMs: 0,
+  colorFlipStartMs: 0,
+  colorBurstActive: false,
+  currentStrokeColor: "#6FA8DD",
+  // clickBehavior: CLICK_BEHAVIORS.COLOR_FLIP,
   motionHistory: [],
   shapes: []
 };
@@ -144,6 +165,73 @@ function getDelayedMotion(delayMs, fallbackX, fallbackY) {
   }
 
   return { x: history[0].x, y: history[0].y };
+}
+
+function randomRange(min, max) {
+  return min + Math.random() * (max - min);
+}
+
+function hexToRgb(hex) {
+  const value = hex.replace("#", "");
+  const normalized = value.length === 3
+    ? value.split("").map((c) => c + c).join("")
+    : value;
+
+  if (!/^[0-9a-fA-F]{6}$/.test(normalized)) {
+    return { r: 111, g: 168, b: 221 };
+  }
+
+  return {
+    r: parseInt(normalized.slice(0, 2), 16),
+    g: parseInt(normalized.slice(2, 4), 16),
+    b: parseInt(normalized.slice(4, 6), 16)
+  };
+}
+
+function interpolateHexColor(fromHex, toHex, t) {
+  const from = hexToRgb(fromHex);
+  const to = hexToRgb(toHex);
+  const mix = clamp(t, 0, 1);
+  const r = Math.round(from.r + (to.r - from.r) * mix);
+  const g = Math.round(from.g + (to.g - from.g) * mix);
+  const b = Math.round(from.b + (to.b - from.b) * mix);
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
+function getColorBurstColor(now) {
+  const sequence = [portalConfig.color, ...portalConfig.colorBurstPalette, portalConfig.color];
+  if (sequence.length < 2) {
+    return portalConfig.color;
+  }
+
+  const segmentMs = Math.max(1, portalConfig.colorBurstSegmentMs);
+  const segmentCount = sequence.length - 1;
+  const totalDuration = segmentCount * segmentMs;
+  const elapsed = now - scene.colorFlipStartMs;
+
+  if (!scene.colorBurstActive || elapsed <= 0) {
+    return portalConfig.color;
+  }
+
+  if (scene.isPointerHeld) {
+    const loopElapsed = elapsed % totalDuration;
+    const segmentPosition = loopElapsed / segmentMs;
+    const segmentIndex = Math.floor(segmentPosition);
+    const segmentT = segmentPosition - segmentIndex;
+
+    return interpolateHexColor(sequence[segmentIndex], sequence[segmentIndex + 1], segmentT);
+  }
+
+  if (elapsed >= totalDuration) {
+    scene.colorBurstActive = false;
+    return portalConfig.color;
+  }
+
+  const segmentPosition = elapsed / segmentMs;
+  const segmentIndex = Math.floor(segmentPosition);
+  const segmentT = segmentPosition - segmentIndex;
+
+  return interpolateHexColor(sequence[segmentIndex], sequence[segmentIndex + 1], segmentT);
 }
 
 async function loadXOutlinePath() {
@@ -333,7 +421,7 @@ function drawPrimaryLayer(layer) {
   }
 }
 
-function drawShape(shape, motionX, motionY, idleDrift) {
+function drawShape(shape, motionX, motionY, idleDrift, glitchAmount) {
   if (!xOutlinePath || !xOutlineOuterPath || !xPrimaryOuterPath) {
     return;
   }
@@ -372,25 +460,35 @@ function drawShape(shape, motionX, motionY, idleDrift) {
     const layerCy = baseCy + offsetStepY * i - delayedMotion.y * motionMulY;
     const layerWidth = shape.width * scale;
     const layerHeight = shape.height * scale;
+    // const layerGlitchScale = glitchAmount * (1 + i * portalConfig.glitchLayerVariance);
+    // const jitterX = randomRange(-portalConfig.glitchMaxOffsetPx, portalConfig.glitchMaxOffsetPx) * layerGlitchScale;
+    // const jitterY = randomRange(-portalConfig.glitchMaxOffsetPx, portalConfig.glitchMaxOffsetPx) * layerGlitchScale;
+    // const jitterAngle = randomRange(-portalConfig.glitchMaxAngle, portalConfig.glitchMaxAngle) * layerGlitchScale;
+    // const jitteredCx = layerCx + jitterX;
+    // const jitteredCy = layerCy + jitterY;
+    // const jitteredAngle = layerAngle + jitterAngle;
+    const jitteredCx = layerCx;
+    const jitteredCy = layerCy;
+    const jitteredAngle = layerAngle;
     const layerStroke =
       i === 0
         ? shape.stroke
         : Math.max(portalConfig.minStroke, shape.stroke * Math.pow(portalConfig.strokeDecay, i));
 
     layers.push({
-      cx: layerCx,
-      cy: layerCy,
+      cx: jitteredCx,
+      cy: jitteredCy,
       width: layerWidth,
       height: layerHeight,
       stroke: layerStroke,
-      angle: layerAngle,
+      angle: jitteredAngle,
       alpha,
-      color: portalConfig.color,
-      path: createTransformedXPath(layerCx, layerCy, layerWidth, layerHeight, layerAngle),
+      color: scene.currentStrokeColor,
+      path: createTransformedXPath(jitteredCx, jitteredCy, layerWidth, layerHeight, jitteredAngle),
       outerPath:
         i === 0
-          ? createTransformedPrimaryOuterPath(layerCx, layerCy, layerWidth, layerHeight, layerAngle)
-          : createTransformedOuterXPath(layerCx, layerCy, layerWidth, layerHeight, layerAngle)
+          ? createTransformedPrimaryOuterPath(jitteredCx, jitteredCy, layerWidth, layerHeight, jitteredAngle)
+          : createTransformedOuterXPath(jitteredCx, jitteredCy, layerWidth, layerHeight, jitteredAngle)
     });
   }
 
@@ -407,6 +505,31 @@ function drawShape(shape, motionX, motionY, idleDrift) {
     ctx.lineWidth = layers[i].stroke;
     ctx.globalAlpha = layers[i].alpha;
     ctx.stroke(layers[i].path);
+
+    // if (glitchAmount > 0) {
+    //   const chromaScale = glitchAmount * (1 + i * portalConfig.glitchLayerVariance);
+    //   const chromaSplit = portalConfig.glitchChromaticSplitPx * chromaScale;
+    //   const chromaPathA = createTransformedXPath(
+    //     layers[i].cx - chromaSplit,
+    //     layers[i].cy,
+    //     layers[i].width,
+    //     layers[i].height,
+    //     layers[i].angle
+    //   );
+    //   const chromaPathB = createTransformedXPath(
+    //     layers[i].cx + chromaSplit,
+    //     layers[i].cy,
+    //     layers[i].width,
+    //     layers[i].height,
+    //     layers[i].angle
+    //   );
+
+    //   ctx.globalAlpha = layers[i].alpha * portalConfig.glitchChromaticAlpha;
+    //   ctx.strokeStyle = portalConfig.glitchChromaticColorA;
+    //   ctx.stroke(chromaPathA);
+    //   ctx.strokeStyle = portalConfig.glitchChromaticColorB;
+    //   ctx.stroke(chromaPathB);
+    // }
   }
 
   while (clipDepth > 0) {
@@ -449,6 +572,17 @@ function render() {
   const motionY = scene.pointer.y * maxOffset * 0.6 * pointerScale;
 
   const now = performance.now();
+  // let glitchAmount = 0;
+  // if (scene.clickBehavior === CLICK_BEHAVIORS.GLITCH) {
+  //   const glitchProgress = clamp((scene.glitchUntilMs - now) / portalConfig.glitchDurationMs, 0, 1);
+  //   glitchAmount = scene.reduceMotion ? glitchProgress * 0.45 : glitchProgress;
+  //   scene.currentStrokeColor = portalConfig.color;
+  // } else {
+  //   scene.currentStrokeColor = getColorBurstColor(now);
+  // }
+  const glitchAmount = 0;
+  scene.currentStrokeColor = getColorBurstColor(now);
+
   scene.motionHistory.push({ t: now, x: motionX, y: motionY });
   const maxHistoryMs = portalConfig.motionDelayMs * Math.max(1, portalConfig.layerCount) + 250;
   while (scene.motionHistory.length > 2 && now - scene.motionHistory[0].t > maxHistoryMs) {
@@ -456,7 +590,7 @@ function render() {
   }
 
   for (const shape of scene.shapes) {
-    drawShape(shape, motionX, motionY, idleScale);
+    drawShape(shape, motionX, motionY, idleScale, glitchAmount);
   }
 
   requestAnimationFrame(render);
@@ -474,6 +608,84 @@ function onPointerMove(event) {
   scene.pointerTarget.y = clamp(normY, -1, 1);
 }
 
+function onPointerDown() {
+  // if (scene.clickBehavior === CLICK_BEHAVIORS.GLITCH) {
+  //   scene.glitchUntilMs = performance.now() + portalConfig.glitchDurationMs;
+  //   return;
+  // }
+
+  scene.isPointerHeld = true;
+  scene.colorBurstActive = true;
+  scene.colorFlipStartMs = performance.now();
+}
+
+function onPointerUp() {
+  scene.isPointerHeld = false;
+}
+
+// function onKeyDown(event) {
+//   if (event.key.toLowerCase() !== "p") {
+//     return;
+//   }
+
+//   scene.clickBehavior =
+//     scene.clickBehavior === CLICK_BEHAVIORS.COLOR_FLIP
+//       ? CLICK_BEHAVIORS.GLITCH
+//       : CLICK_BEHAVIORS.COLOR_FLIP;
+
+//   console.info(`Click behavior: ${scene.clickBehavior}`);
+// }
+
+function setupNotifyButtons() {
+  const buttons = document.querySelectorAll(".notify-btn");
+
+  buttons.forEach((button) => {
+    button.addEventListener("click", () => {
+      button.classList.remove("is-clicked");
+      void button.offsetWidth;
+      button.classList.add("is-clicked");
+    });
+
+    button.addEventListener("animationend", () => {
+      button.classList.remove("is-clicked");
+    });
+  });
+}
+
+function setupRetroPreviewButtons() {
+  const buttons = document.querySelectorAll(".concept-retro .btn");
+
+  buttons.forEach((button) => {
+    button.addEventListener("mousedown", () => {
+      button.classList.add("btn-active");
+    });
+
+    button.addEventListener("mouseup", () => {
+      button.classList.remove("btn-active");
+    });
+
+    button.addEventListener("mouseleave", () => {
+      button.classList.remove("btn-center", "btn-right", "btn-left", "btn-active");
+    });
+
+    button.addEventListener("mousemove", (event) => {
+      const leftOffset = button.getBoundingClientRect().left;
+      const buttonWidth = button.offsetWidth;
+      const pointerX = event.pageX;
+
+      let nextClass = "btn-center";
+      if (pointerX < leftOffset + 0.3 * buttonWidth) {
+        nextClass = "btn-left";
+      } else if (pointerX > leftOffset + 0.65 * buttonWidth) {
+        nextClass = "btn-right";
+      }
+
+      button.classList.remove("btn-center", "btn-right", "btn-left");
+      button.classList.add(nextClass);
+    });
+  });
+}
+
 function setInteractionMode() {
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const coarsePointer = window.matchMedia("(hover: none), (pointer: coarse)").matches;
@@ -489,11 +701,17 @@ function setInteractionMode() {
 
 window.addEventListener("resize", resize);
 window.addEventListener("pointermove", onPointerMove);
+window.addEventListener("pointerdown", onPointerDown);
+window.addEventListener("pointerup", onPointerUp);
+window.addEventListener("pointercancel", onPointerUp);
+// window.addEventListener("keydown", onKeyDown);
 window.matchMedia("(hover: none), (pointer: coarse)").addEventListener("change", setInteractionMode);
 window.matchMedia("(prefers-reduced-motion: reduce)").addEventListener("change", setInteractionMode);
 
 setInteractionMode();
 resize();
+setupNotifyButtons();
+// setupRetroPreviewButtons();
 loadXOutlinePath().catch((error) => {
   console.error(error);
 });
