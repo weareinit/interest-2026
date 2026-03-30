@@ -1,0 +1,58 @@
+:root {
+  --bg-base: #171a1f;
+  --bg-vignette: #0e1014;
+  --line-blue: #0277FC;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 38%, var(--bg-base) 0%, var(--bg-vignette) 72%);
+}
+
+.stage {
+  position: relative;
+  width: 100vw;
+  height: 100dvh;
+  isolation: isolate;
+}
+
+#x-scene,
+.grain {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+#x-scene {
+  display: block;
+  z-index: 0;
+}
+
+.grain {
+  pointer-events: none;
+  z-index: 2;
+  opacity: 0.32;
+  mix-blend-mode:screen;
+  background-image: url("texture.jpg");
+  background-position: bottom right;
+  background-repeat: no-repeat;
+  background-size: cover;
+  filter: contrast(112%) brightness(1.05);
+}
+
+@media (max-width: 900px) {
+  .grain {
+    opacity: 0.22;
+  }
+}
