@@ -43,8 +43,8 @@ body {
   pointer-events: none;
   z-index: 2;
   opacity: 0.32;
-  mix-blend-mode:screen;
-  background-image: url("texture.jpg");
+  mix-blend-mode: screen; /* nts: screen or overlay unsure which looks better */
+  background-image: url("assets/texture.jpg");
   background-position: bottom right;
   background-repeat: no-repeat;
   background-size: cover;
@@ -53,6 +53,18 @@ body {
 
 @media (max-width: 900px) {
   .grain {
-    opacity: 0.22;
+    opacity: 0.12;
   }
+}
+
+.rect-overlay {
+  position: absolute;
+  right: 0;
+  top: 46%;
+  width: 90vw;
+  height: auto;
+  transform: translateY(-50%);
+  z-index: 1;
+  pointer-events: none;
+  user-select: none;
 }

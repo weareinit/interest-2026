@@ -18,8 +18,9 @@ let xPrimaryParts = [];
 const portalConfig = {
   layerCount: 7,
   motionDelayMs: 90,
-  shapeWidthScale: 0.7,
-  shapeHeightScale: 0.7,
+  shapeWidthScale: 1.0,
+  shapeHeightScale: 1.0,
+  topLeftPad: -10,
   offsetStepXFactor: 0.09,
   offsetStepYFactor: 0,
   innerScaleStart: 0.63,
@@ -39,7 +40,6 @@ const portalConfig = {
 const scene = {
   width: 0,
   height: 0,
-  dpr: 1,
   pointer: { x: 0, y: 0 },
   pointerTarget: { x: 0, y: 0 },
   tick: 0,
@@ -148,8 +148,8 @@ function getDelayedMotion(delayMs, fallbackX, fallbackY) {
 
 async function loadXOutlinePath() {
   const [echoResponse, primaryResponse] = await Promise.all([
-    fetch("Vector.svg"),
-    fetch("Vector-w-text.svg")
+    fetch("assets/Vector.svg"),
+    fetch("assets/Vector-w-text.svg")
   ]);
 
   if (!echoResponse.ok) {
@@ -225,12 +225,8 @@ function createShape(centerX, centerY, width, height, options) {
     stroke: options.stroke,
     depth: options.depth,
     angle: options.angle,
-    nestCount: options.nestCount,
-    step: options.step,
     phase: options.phase,
-    drift: options.drift,
-    offsetX: 0,
-    offsetY: 0
+    drift: options.drift
   };
 }
 
@@ -245,24 +241,22 @@ function buildScene() {
   const baseHeight = baseScale;
   const shapeW = baseWidth * portalConfig.shapeWidthScale;
   const shapeH = baseHeight * portalConfig.shapeHeightScale;
-  const pad = -10; 
+  const pad = portalConfig.topLeftPad;
   scene.shapes = [
     createShape(
-    shapeW * 0.5 + pad, // top-left anchored X center
-    shapeH * 0.5 + pad,
-    shapeW,
-    shapeH,
-    {
-      stroke: isWide ? 8.5 : 6.5,
-      depth: 1,
-      angle: 0,
-      nestCount: 0,
-      step: 0,
-      phase: 1.2,
-      drift: 0.4
-    }
-  )
-];
+      shapeW * 0.5 + pad,
+      shapeH * 0.5 + pad,
+      shapeW,
+      shapeH,
+      {
+        stroke: isWide ? 8.5 : 6.5,
+        depth: 1,
+        angle: 0,
+        phase: 1.2,
+        drift: 0.4
+      }
+    )
+  ];
 }
 
 function resize() {
@@ -271,7 +265,6 @@ function resize() {
 
   scene.width = rect.width;
   scene.height = rect.height;
-  scene.dpr = dpr;
 
   canvas.width = Math.floor(rect.width * dpr);
   canvas.height = Math.floor(rect.height * dpr);
@@ -285,52 +278,32 @@ function resize() {
   buildScene();
 }
 
-function createTransformedXPath(cx, cy, width, height, angle) {
+function createTransformedPath(path, metrics, cx, cy, width, height, angle) {
   const matrix = new DOMMatrix();
   matrix.translateSelf(cx, cy);
   matrix.rotateSelf((angle * 180) / Math.PI);
-  matrix.scaleSelf(width / xOutlineMetrics.width, height / xOutlineMetrics.height);
-  matrix.translateSelf(-xOutlineMetrics.centerX, -xOutlineMetrics.centerY);
-
-  const transformed = new Path2D();
-  transformed.addPath(xOutlinePath, matrix);
-  return transformed;
-}
-
-function createTransformedOuterXPath(cx, cy, width, height, angle) {
-  const matrix = new DOMMatrix();
-  matrix.translateSelf(cx, cy);
-  matrix.rotateSelf((angle * 180) / Math.PI);
-  matrix.scaleSelf(width / xOutlineMetrics.width, height / xOutlineMetrics.height);
-  matrix.translateSelf(-xOutlineMetrics.centerX, -xOutlineMetrics.centerY);
-
-  const transformed = new Path2D();
-  transformed.addPath(xOutlineOuterPath, matrix);
-  return transformed;
-}
-
-function createTransformedPrimaryPath(path, cx, cy, width, height, angle) {
-  const matrix = new DOMMatrix();
-  matrix.translateSelf(cx, cy);
-  matrix.rotateSelf((angle * 180) / Math.PI);
-  matrix.scaleSelf(width / xPrimaryMetrics.width, height / xPrimaryMetrics.height);
-  matrix.translateSelf(-xPrimaryMetrics.centerX, -xPrimaryMetrics.centerY);
+  matrix.scaleSelf(width / metrics.width, height / metrics.height);
+  matrix.translateSelf(-metrics.centerX, -metrics.centerY);
 
   const transformed = new Path2D();
   transformed.addPath(path, matrix);
   return transformed;
 }
 
-function createTransformedPrimaryOuterPath(cx, cy, width, height, angle) {
-  const matrix = new DOMMatrix();
-  matrix.translateSelf(cx, cy);
-  matrix.rotateSelf((angle * 180) / Math.PI);
-  matrix.scaleSelf(width / xPrimaryMetrics.width, height / xPrimaryMetrics.height);
-  matrix.translateSelf(-xPrimaryMetrics.centerX, -xPrimaryMetrics.centerY);
+function createTransformedXPath(cx, cy, width, height, angle) {
+  return createTransformedPath(xOutlinePath, xOutlineMetrics, cx, cy, width, height, angle);
+}
 
-  const transformed = new Path2D();
-  transformed.addPath(xPrimaryOuterPath, matrix);
-  return transformed;
+function createTransformedOuterXPath(cx, cy, width, height, angle) {
+  return createTransformedPath(xOutlineOuterPath, xOutlineMetrics, cx, cy, width, height, angle);
+}
+
+function createTransformedPrimaryPath(path, cx, cy, width, height, angle) {
+  return createTransformedPath(path, xPrimaryMetrics, cx, cy, width, height, angle);
+}
+
+function createTransformedPrimaryOuterPath(cx, cy, width, height, angle) {
+  return createTransformedPath(xPrimaryOuterPath, xPrimaryMetrics, cx, cy, width, height, angle);
 }
 
 function drawPrimaryLayer(layer) {
@@ -360,20 +333,6 @@ function drawPrimaryLayer(layer) {
   }
 }
 
-function drawXShape(cx, cy, width, height, strokeWidth, angle, color = "#6FA8DD", alpha = 0.93) {
-  if (!xOutlinePath) {
-    return;
-  }
-
-  const path = createTransformedXPath(cx, cy, width, height, angle);
-
-  ctx.lineWidth = strokeWidth;
-  ctx.strokeStyle = color;
-  ctx.globalAlpha = alpha;
-
-  ctx.stroke(path);
-}
-
 function drawShape(shape, motionX, motionY, idleDrift) {
   if (!xOutlinePath || !xOutlineOuterPath || !xPrimaryOuterPath) {
     return;
@@ -383,8 +342,6 @@ function drawShape(shape, motionX, motionY, idleDrift) {
   const driftX = Math.sin(scene.tick * 0.001 + shape.phase) * shape.drift * idleDrift;
   const driftY = Math.cos(scene.tick * 0.0012 + shape.phase) * shape.drift * idleDrift;
 
-  shape.offsetX = motionX * baseOffset + driftX;
-  shape.offsetY = motionY * baseOffset + driftY;
   const offsetStepX = shape.width * portalConfig.offsetStepXFactor;
   const offsetStepY = shape.height * portalConfig.offsetStepYFactor;
   const layerCount = Math.max(1, Math.floor(portalConfig.layerCount));
