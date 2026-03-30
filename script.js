@@ -236,15 +236,15 @@ function getColorBurstColor(now) {
 
 async function loadXOutlinePath() {
   const [echoResponse, primaryResponse] = await Promise.all([
-    fetch("assets/Vector.svg"),
-    fetch("assets/Vector-w-text.svg")
+    fetch("assets/x.svg"),
+    fetch("assets/x-text.svg")
   ]);
 
   if (!echoResponse.ok) {
-    throw new Error(`Failed to load Vector.svg: ${echoResponse.status}`);
+    throw new Error(`Failed to load x.svg: ${echoResponse.status}`);
   }
   if (!primaryResponse.ok) {
-    throw new Error(`Failed to load Vector-w-text.svg: ${primaryResponse.status}`);
+    throw new Error(`Failed to load x-text.svg: ${primaryResponse.status}`);
   }
 
   const [echoText, primaryText] = await Promise.all([echoResponse.text(), primaryResponse.text()]);
@@ -254,12 +254,12 @@ async function loadXOutlinePath() {
 
   const echoPathNode = echoDoc.querySelector("path[d]");
   if (!echoPathNode) {
-    throw new Error("No path found in Vector.svg");
+    throw new Error("No path found in x.svg");
   }
 
   const primaryPathNodes = Array.from(primaryDoc.querySelectorAll("path[d]"));
   if (primaryPathNodes.length === 0) {
-    throw new Error("No paths found in Vector-w-text.svg");
+    throw new Error("No paths found in x-text.svg");
   }
 
   const echoD = echoPathNode.getAttribute("d") || "";

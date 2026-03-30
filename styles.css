@@ -110,6 +110,28 @@ body {
   gap: 10px;
 }
 
+.sponsors-strip {
+  position: absolute;
+  left: 50%;
+  bottom: clamp(14px, 2.4vw, 26px);
+  transform: translateX(-50%);
+  z-index: 3;
+  width: min(1200px, 94vw);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: clamp(14px, 2.2vw, 34px);
+  flex-wrap: wrap;
+}
+
+.sponsor-logo {
+  height: clamp(16px, 2.2vw, 32px);
+  width: auto;
+  max-width: min(140px, 18vw);
+  object-fit: contain;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.55));
+}
+
 .concept {
   display: grid;
   gap: 6px;
@@ -445,12 +467,12 @@ body {
   font-family: "IBM Plex Mono", "Consolas", monospace;
   font-weight: 600;
   letter-spacing: 0.06em;
-  color: #ceddf6;
+  color: #e0e1ce;
   background:
     linear-gradient(180deg, rgba(150, 255, 138, 0.08), rgba(150, 255, 138, 0)),
     #081107;
-  border: 2px solid #6EB8EB;
-  outline: 1px solid #d39b34;
+  border: 2px solid #e57777; /* #a0a0a0 #0ebe28 */
+  outline: 1px solid #8cb392;
   outline-offset: -5px;
   clip-path: polygon(0 5px, 5px 5px, 5px 0, calc(100% - 5px) 0, calc(100% - 5px) 5px, 100% 5px, 100% calc(100% - 5px), calc(100% - 5px) calc(100% - 5px), calc(100% - 5px) 100%, 5px 100%, 5px calc(100% - 5px), 0 calc(100% - 5px));
   box-shadow: 0 0 0 1px rgba(82, 191, 78, 0.25) inset, 0 0 0 1px rgba(211, 155, 52, 0.35);
@@ -460,14 +482,14 @@ body {
   content: "_";
   display: inline-block;
   margin-left: 0.28em;
-  color: #d39b34;
+  color: #e1cca7;
   animation: terminal-cursor 520ms steps(1, end) infinite;
 }
 
 .btn-terminal:hover {
   letter-spacing: 0.08em;
-  color: #cef2c3;
-  box-shadow: 0 0 0 1px rgba(125, 243, 121, 0.44) inset, 0 0 12px rgba(120, 237, 116, 0.32);
+  color: #dddddd;
+  box-shadow: 0 0 0 1px rgba(147, 147, 147, 0.649) inset, 0 0 12px rgba(235, 233, 233, 0.886);
 }
 
 .btn-terminal:active {
@@ -603,5 +625,16 @@ body {
     min-height: 35px;
     width: 50%;
     font-size: 13px;
+  }
+
+  .sponsors-strip {
+    bottom: clamp(10px, 3vw, 18px);
+    gap: clamp(10px, 2.8vw, 20px);
+    width: 92vw;
+  }
+
+  .sponsor-logo {
+    height: clamp(14px, 3.6vw, 22px);
+    max-width: 28vw;
   }
 }
