@@ -44,6 +44,9 @@ const portalConfig = {
   glitchChromaticColorB: "#2ee6ff",
   colorBurstPalette: ["#ff315f", "#ff8b2a", "#ffe75b", "#4eff88", "#2ee6ff", "#6e7bff", "#c66bff"],
   colorBurstSegmentMs: 85,
+  idleAutoMotionAmpX: 0.22,
+  idleAutoMotionAmpY: 0.16,
+  idleAutoMotionSpeed: 0.00022,
   color: "#6FA8DD"
 };
 
@@ -408,7 +411,7 @@ function drawPrimaryLayer(layer) {
   for (const part of xPrimaryParts) {
     const transformed = createTransformedPrimaryPath(part.path, layer.cx, layer.cy, layer.width, layer.height, layer.angle);
 
-    if (part.fill !== "none") {
+    if (part.fill !== " none") {
       ctx.fillStyle = part.fill;
       ctx.fill(transformed, "evenodd");
     }
@@ -558,6 +561,21 @@ function drawShape(shape, motionX, motionY, idleDrift, glitchAmount) {
 }
 
 function render() {
+  const now = performance.now();
+
+  if (scene.useIdle) {
+    const t = now * portalConfig.idleAutoMotionSpeed;
+    const baseAmpX = scene.reduceMotion ? portalConfig.idleAutoMotionAmpX * 0.4 : portalConfig.idleAutoMotionAmpX;
+    const baseAmpY = scene.reduceMotion ? portalConfig.idleAutoMotionAmpY * 0.4 : portalConfig.idleAutoMotionAmpY;
+
+    // Two-frequency blend to avoid obvious looping on touchscreen idle motion.
+    const autoX = Math.sin(t * 1.9) * baseAmpX + Math.sin(t * 0.73 + 1.2) * (baseAmpX * 0.35);
+    const autoY = Math.cos(t * 1.5 + 0.4) * baseAmpY + Math.sin(t * 0.67) * (baseAmpY * 0.28);
+
+    scene.pointerTarget.x = clamp(autoX, -1, 1);
+    scene.pointerTarget.y = clamp(autoY, -1, 1);
+  }
+
   scene.tick += 1;
 
   scene.pointer.x = smoothStep(scene.pointer.x, scene.pointerTarget.x, 0.07);
@@ -571,7 +589,6 @@ function render() {
   const motionX = scene.pointer.x * maxOffset * pointerScale;
   const motionY = scene.pointer.y * maxOffset * 0.6 * pointerScale;
 
-  const now = performance.now();
   // let glitchAmount = 0;
   // if (scene.clickBehavior === CLICK_BEHAVIORS.GLITCH) {
   //   const glitchProgress = clamp((scene.glitchUntilMs - now) / portalConfig.glitchDurationMs, 0, 1);
