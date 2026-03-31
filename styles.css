@@ -219,6 +219,7 @@ body {
   text-transform: uppercase;
   color: #F8DC73;
   text-shadow: 0 0px 5px rgba(0, 0, 0, 0.75);
+  white-space: nowrap;
 }
 
 .notify-lab {
@@ -611,13 +612,13 @@ body {
   letter-spacing: 0.06em;
   color: #e0e1ce;
   background:
-    linear-gradient(180deg, rgba(150, 255, 138, 0.08), rgba(150, 255, 138, 0)),
-    #081107;
+    linear-gradient(180deg, rgba(21, 138, 222, 0.167), rgba(95, 199, 251, 0.073)),
+    #080711;
   border: 2px solid #e57777; /* #a0a0a0 #0ebe28 */
-  outline: 1px solid #8cb392;
+  outline: 1px solid #8c8eb3;
   outline-offset: -5px;
   clip-path: polygon(0 5px, 5px 5px, 5px 0, calc(100% - 5px) 0, calc(100% - 5px) 5px, 100% 5px, 100% calc(100% - 5px), calc(100% - 5px) calc(100% - 5px), calc(100% - 5px) 100%, 5px 100%, 5px calc(100% - 5px), 0 calc(100% - 5px));
-  box-shadow: 0 0 0 1px rgba(82, 191, 78, 0.25) inset, 0 0 0 1px rgba(211, 155, 52, 0.35);
+  box-shadow: 0 0 0 1px rgba(78, 93, 191, 0.25) inset, 0 0 0 1px rgba(211, 155, 52, 0.35);
 }
 
 .btn-terminal::after {
