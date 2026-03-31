@@ -1,5 +1,15 @@
 const canvas = document.getElementById("x-scene");
 const ctx = canvas.getContext("2d", { alpha: true });
+
+const USE_PATH_TRANSFORM = (function() {
+  try {
+    const p = new Path2D();
+    p.addPath(new Path2D(), new DOMMatrix());
+    return true;
+  } catch (e) {
+    return false;
+  }
+})();
 const DEFAULT_OUTLINE_METRICS = {
   minX: 0,
   minY: 0,
@@ -20,7 +30,8 @@ const portalConfig = {
   motionDelayMs: 90,
   shapeWidthScale: 1.0,
   shapeHeightScale: 1.0,
-  topLeftPad: -10,
+  topPad: -50,
+  leftPad: -150,
   offsetStepXFactor: 0.09,
   offsetStepYFactor: 0,
   innerScaleStart: 0.63,
@@ -43,7 +54,7 @@ const portalConfig = {
   glitchChromaticColorA: "#ff365b",
   glitchChromaticColorB: "#2ee6ff",
   colorBurstPalette: ["#ff315f", "#ff8b2a", "#ffe75b", "#4eff88", "#2ee6ff", "#6e7bff", "#c66bff"],
-  colorBurstSegmentMs: 85,
+  colorBurstSegmentMs: 200,
   idleAutoMotionAmpX: 0.22,
   idleAutoMotionAmpY: 0.16,
   idleAutoMotionSpeed: 0.00022,
@@ -201,7 +212,7 @@ function interpolateHexColor(fromHex, toHex, t) {
   return `rgb(${r}, ${g}, ${b})`;
 }
 
-function getColorBurstColor(now) {
+function getColorBurstColor(now, delayMs) {
   const sequence = [portalConfig.color, ...portalConfig.colorBurstPalette, portalConfig.color];
   if (sequence.length < 2) {
     return portalConfig.color;
@@ -210,14 +221,14 @@ function getColorBurstColor(now) {
   const segmentMs = Math.max(1, portalConfig.colorBurstSegmentMs);
   const segmentCount = sequence.length - 1;
   const totalDuration = segmentCount * segmentMs;
-  const elapsed = now - scene.colorFlipStartMs;
+  const adjustedElapsed = Math.max(0, now - scene.colorFlipStartMs - delayMs);
 
-  if (!scene.colorBurstActive || elapsed <= 0) {
+  if (!scene.colorBurstActive || adjustedElapsed <= 0) {
     return portalConfig.color;
   }
 
   if (scene.isPointerHeld) {
-    const loopElapsed = elapsed % totalDuration;
+    const loopElapsed = adjustedElapsed % totalDuration;
     const segmentPosition = loopElapsed / segmentMs;
     const segmentIndex = Math.floor(segmentPosition);
     const segmentT = segmentPosition - segmentIndex;
@@ -225,12 +236,12 @@ function getColorBurstColor(now) {
     return interpolateHexColor(sequence[segmentIndex], sequence[segmentIndex + 1], segmentT);
   }
 
-  if (elapsed >= totalDuration) {
+  if (adjustedElapsed >= totalDuration) {
     scene.colorBurstActive = false;
     return portalConfig.color;
   }
 
-  const segmentPosition = elapsed / segmentMs;
+  const segmentPosition = adjustedElapsed / segmentMs;
   const segmentIndex = Math.floor(segmentPosition);
   const segmentT = segmentPosition - segmentIndex;
 
@@ -325,18 +336,26 @@ function buildScene() {
   const w = scene.width;
   const h = scene.height;
   const isWide = w / h > 1.1;
-  
+
   // Single scale factor for both dimensions to lock aspect ratio
-  const baseScale = isWide ? Math.min(w, h) * 0.9 : Math.min(w, h) * 0.8;
+  const minDim = Math.min(w, h);
+  let baseScale = isWide ? minDim * 0.9 : minDim * 0.8;
+
+  // On smaller screens, progressively scale up the X for better visual presence.
+  const smallScreenFactor = clamp((900 - w) / 500, 0, 1);
+  const mobileBoost = 1 + smallScreenFactor * 0.88;
+  baseScale *= mobileBoost;
+
   const baseWidth = baseScale;
   const baseHeight = baseScale;
   const shapeW = baseWidth * portalConfig.shapeWidthScale;
   const shapeH = baseHeight * portalConfig.shapeHeightScale;
-  const pad = portalConfig.topLeftPad;
+  const leftPad = -30 - smallScreenFactor * 170;
+  const topPad = portalConfig.topPad;
   scene.shapes = [
     createShape(
-      shapeW * 0.5 + pad,
-      shapeH * 0.5 + pad,
+      shapeW * 0.5 + leftPad,
+      shapeH * 0.5 + topPad,
       shapeW,
       shapeH,
       {
@@ -376,9 +395,13 @@ function createTransformedPath(path, metrics, cx, cy, width, height, angle) {
   matrix.scaleSelf(width / metrics.width, height / metrics.height);
   matrix.translateSelf(-metrics.centerX, -metrics.centerY);
 
-  const transformed = new Path2D();
-  transformed.addPath(path, matrix);
-  return transformed;
+  if (USE_PATH_TRANSFORM) {
+    const transformed = new Path2D();
+    transformed.addPath(path, matrix);
+    return transformed;
+  }
+
+  return { path, matrix };
 }
 
 function createTransformedXPath(cx, cy, width, height, angle) {
@@ -397,6 +420,34 @@ function createTransformedPrimaryOuterPath(cx, cy, width, height, angle) {
   return createTransformedPath(xPrimaryOuterPath, xPrimaryMetrics, cx, cy, width, height, angle);
 }
 
+function drawWithTransform(pathOrInfo, drawFn) {
+  if (USE_PATH_TRANSFORM) {
+    drawFn(pathOrInfo);
+  } else {
+    ctx.save();
+    ctx.transform(
+      pathOrInfo.matrix.a, pathOrInfo.matrix.b,
+      pathOrInfo.matrix.c, pathOrInfo.matrix.d,
+      pathOrInfo.matrix.e, pathOrInfo.matrix.f
+    );
+    drawFn(pathOrInfo.path);
+    ctx.restore();
+  }
+}
+
+function clipWithTransform(pathOrInfo, fillRule) {
+  if (USE_PATH_TRANSFORM) {
+    ctx.clip(pathOrInfo, fillRule);
+  } else {
+    ctx.transform(
+      pathOrInfo.matrix.a, pathOrInfo.matrix.b,
+      pathOrInfo.matrix.c, pathOrInfo.matrix.d,
+      pathOrInfo.matrix.e, pathOrInfo.matrix.f
+    );
+    ctx.clip(pathOrInfo.path, fillRule);
+  }
+}
+
 function drawPrimaryLayer(layer) {
   if (!xPrimaryParts.length) {
     return;
@@ -411,20 +462,22 @@ function drawPrimaryLayer(layer) {
   for (const part of xPrimaryParts) {
     const transformed = createTransformedPrimaryPath(part.path, layer.cx, layer.cy, layer.width, layer.height, layer.angle);
 
-    if (part.fill !== " none") {
-      ctx.fillStyle = part.fill;
-      ctx.fill(transformed, "evenodd");
-    }
+    drawWithTransform(transformed, function(path) {
+      if (part.fill && part.fill.trim().toLowerCase() !== "none") {
+        ctx.fillStyle = part.fill;
+        ctx.fill(path, "evenodd");
+      }
 
-    if (part.stroke !== "none") {
-      ctx.strokeStyle = part.stroke;
-      ctx.lineWidth = Math.max(1, part.strokeWidth * scaleStroke);
-      ctx.stroke(transformed);
-    }
+      if (part.stroke !== "none") {
+        ctx.strokeStyle = part.stroke;
+        ctx.lineWidth = Math.max(1, part.strokeWidth * scaleStroke);
+        ctx.stroke(path);
+      }
+    });
   }
 }
 
-function drawShape(shape, motionX, motionY, idleDrift, glitchAmount) {
+function drawShape(shape, motionX, motionY, idleDrift, glitchAmount, now) {
   if (!xOutlinePath || !xOutlineOuterPath || !xPrimaryOuterPath) {
     return;
   }
@@ -486,7 +539,7 @@ function drawShape(shape, motionX, motionY, idleDrift, glitchAmount) {
       stroke: layerStroke,
       angle: jitteredAngle,
       alpha,
-      color: scene.currentStrokeColor,
+      color: getColorBurstColor(now, i * portalConfig.motionDelayMs),
       path: createTransformedXPath(jitteredCx, jitteredCy, layerWidth, layerHeight, jitteredAngle),
       outerPath:
         i === 0
@@ -500,14 +553,23 @@ function drawShape(shape, motionX, motionY, idleDrift, glitchAmount) {
   let clipDepth = 0;
 
   for (let i = 1; i < layers.length; i += 1) {
-    ctx.save();
-    clipDepth += 1;
-    ctx.clip(layers[i - 1].outerPath, "nonzero");
+    if (USE_PATH_TRANSFORM) {
+      ctx.save();
+      clipDepth += 1;
+      ctx.clip(layers[i - 1].outerPath, "nonzero");
+    } else {
+      ctx.save();
+      clipDepth += 1;
+      clipWithTransform(layers[i - 1].outerPath, "nonzero");
+    }
 
     ctx.strokeStyle = layers[i].color;
     ctx.lineWidth = layers[i].stroke;
     ctx.globalAlpha = layers[i].alpha;
-    ctx.stroke(layers[i].path);
+
+    drawWithTransform(layers[i].path, function(path) {
+      ctx.stroke(path);
+    });
 
     // if (glitchAmount > 0) {
     //   const chromaScale = glitchAmount * (1 + i * portalConfig.glitchLayerVariance);
@@ -598,7 +660,6 @@ function render() {
   //   scene.currentStrokeColor = getColorBurstColor(now);
   // }
   const glitchAmount = 0;
-  scene.currentStrokeColor = getColorBurstColor(now);
 
   scene.motionHistory.push({ t: now, x: motionX, y: motionY });
   const maxHistoryMs = portalConfig.motionDelayMs * Math.max(1, portalConfig.layerCount) + 250;
@@ -607,7 +668,7 @@ function render() {
   }
 
   for (const shape of scene.shapes) {
-    drawShape(shape, motionX, motionY, idleScale, glitchAmount);
+    drawShape(shape, motionX, motionY, idleScale, glitchAmount, now);
   }
 
   requestAnimationFrame(render);

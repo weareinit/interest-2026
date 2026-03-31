@@ -18,10 +18,21 @@
   box-sizing: border-box;
 }
 
+.stage,
+.stage *,
+html,
+body {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
 html,
 body {
   margin: 0;
   min-height: 100%;
+  background: #171a1f;
 }
 
 body {
@@ -32,6 +43,7 @@ body {
 .stage {
   position: relative;
   width: 100vw;
+  height: 100vh;
   height: 100dvh;
   isolation: isolate;
   --rect-width: 90vw;
@@ -63,6 +75,115 @@ body {
   background-repeat: no-repeat;
   background-size: cover;
   filter: contrast(112%) brightness(1.05);
+}
+
+.crt-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 3;
+  backdrop-filter: blur(10.0px);
+  -webkit-backdrop-filter: blur(10.0px);
+  background:
+    /* Subtle glow between scanlines */
+    repeating-linear-gradient(
+      0deg,
+      transparent 0px,
+      transparent 1px,
+      rgba(180, 220, 255, 0.08) 1px,
+      rgba(180, 220, 255, 0.08) 2px,
+      transparent 2px,
+      transparent 3px
+    ),
+    /* RGB phosphor stripes */
+    repeating-linear-gradient(
+      0deg,
+      rgba(255, 0, 0, 0.06) 0px,
+      rgba(0, 255, 0, 0.06) 1px,
+      rgba(0, 0, 255, 0.06) 2px,
+      transparent 2px,
+      transparent 3px
+    ),
+    /* Fine scanlines */
+    repeating-linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0.28) 0px,
+      rgba(0, 0, 0, 0.28) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+  background-size:
+    100% 3px,
+    100% 3px,
+    100% 3px;
+  background-position:
+    0 0,
+    0 0,
+    0 0;
+  box-shadow:
+    inset 0 0 80px rgba(100, 180, 255, 0.1),
+    inset 0 0 200px rgba(100, 180, 255, 0.05);
+  mask-image: radial-gradient(
+    ellipse 80% 80% at 50% 50%,
+    rgba(0, 0, 0, 0.4) 0%,
+    transparent 100%
+  );
+  -webkit-mask-image: radial-gradient(
+    ellipse 80% 80% at 50% 50%,
+    rgba(0, 0, 0, 0.4) 0%,
+    transparent 100%
+  );
+  animation: crt-flicker 4s ease-in-out infinite;
+}
+
+.crt-overlay::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.04) 40%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.04) 60%,
+    transparent 100%
+  );
+  background-size: 100% 40%;
+  background-repeat: no-repeat;
+  animation: crt-roll 6s linear infinite;
+}
+
+@keyframes crt-flicker {
+  0%, 100% {
+    opacity: 1;
+  }
+  25% {
+    opacity: 0.97;
+  }
+  50% {
+    opacity: 0.99;
+  }
+  75% {
+    opacity: 0.96;
+  }
+}
+
+@keyframes crt-roll {
+  0% {
+    background-position:
+      0% 0%,
+      0 0,
+      0 0,
+      0 0;
+  }
+  100% {
+    background-position:
+      0% 200%,
+      0 0,
+      0 0,
+      0 0;
+  }
 }
 
 @media (max-width: 900px) {
@@ -118,16 +239,26 @@ body {
   z-index: 3;
   width: min(1200px, 94vw);
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
-  gap: clamp(14px, 2.2vw, 34px);
-  flex-wrap: wrap;
+  gap: clamp(8px, 1.4vw, 16px);
+}
+
+.sponsors-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.sponsors-row-top {
+  justify-content: center;
 }
 
 .sponsor-logo {
-  height: clamp(16px, 2.2vw, 32px);
+  height: clamp(24px, 3.3vw, 48px);
   width: auto;
-  max-width: min(140px, 18vw);
+  max-width: min(210px, 27vw);
   object-fit: contain;
   filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.55));
 }
@@ -352,7 +483,18 @@ body {
   color: #eef4ff;
   border-radius: 0;
   padding: 0 16px;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font: inherit;
   transition: transform 180ms ease, box-shadow 180ms ease, filter 180ms ease, letter-spacing 180ms ease;
+}
+
+.notify-btn:link,
+.notify-btn:visited {
+  color: #eef4ff;
+  text-decoration: none;
 }
 
 .notify-btn.is-clicked {
@@ -634,7 +776,7 @@ body {
   }
 
   .sponsor-logo {
-    height: clamp(14px, 3.6vw, 22px);
-    max-width: 28vw;
+    height: clamp(21px, 5.4vw, 33px);
+    max-width: 42vw;
   }
 }

@@ -3,7 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#151718" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <meta name="description" content="Register your interest for Shell Hacks X — coming to FIU this September. Sign up to get early access and event updates." />
     <title>Shell Hacks X Interest Form</title>
+    <link rel="icon" href="assets/x.svg" type="image/svg+xml">
+    <link rel="icon" href="assets/x.webp" type="image/webp">
+    <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
@@ -27,7 +35,7 @@
 
         <article class="concept concept-terminal">
           <!-- <p class="concept-label">Dataterm Key</p> -->
-          <button type="button" class="notify-btn btn-terminal">&gt; GET NOTIFIED</button>
+          <a href="https://airtable.com/appgp6itDfgnLCdSt/shrRdwBkN2BKe9bJk?prefill_Traffic%20Source=ShellHacks%20Website&hide_Traffic%20Source=true" target="_blank" rel="noopener noreferrer" class="notify-btn btn-terminal">&gt; GET NOTIFIED</a>
         </article>
 
         <!--
@@ -57,15 +65,20 @@
       </section>
 
       <section class="sponsors-strip" aria-label="Sponsors">
-        <img src="assets/sponsors/Assurant.svg" alt="Assurant" class="sponsor-logo" />
-        <img src="assets/sponsors/Waymo.svg" alt="Waymo" class="sponsor-logo" />
-        <img src="assets/sponsors/Microsoft.svg" alt="Microsoft" class="sponsor-logo" />
-        <img src="assets/sponsors/init.svg" alt="Init" class="sponsor-logo" />
-        <img src="assets/sponsors/The_Blackstone_Group.svg" alt="Blackstone" class="sponsor-logo" />
-        <img src="assets/sponsors/chevron.svg" alt="Chevron" class="sponsor-logo" />
+        <div class="sponsors-row sponsors-row-top">
+          <img src="assets/sponsors/init.svg" alt="Init" class="sponsor-logo" />
+        </div>
+        <div class="sponsors-row sponsors-row-bottom">
+          <img src="assets/sponsors/Assurant.svg" alt="Assurant" class="sponsor-logo" />
+          <img src="assets/sponsors/Waymo.svg" alt="Waymo" class="sponsor-logo" />
+          <img src="assets/sponsors/Microsoft.svg" alt="Microsoft" class="sponsor-logo" />
+          <img src="assets/sponsors/The_Blackstone_Group.svg" alt="Blackstone" class="sponsor-logo" />
+          <img src="assets/sponsors/chevron.svg" alt="Chevron" class="sponsor-logo" />
+        </div>
       </section>
 
       <div class="grain" aria-hidden="true"></div>
+      <div class="crt-overlay" aria-hidden="true"></div>
     </main>
 
     <script src="script.js"></script>
