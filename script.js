@@ -75,11 +75,10 @@ const scene = {
   tick: 0,
   useIdle: false,
   reduceMotion: false,
-  // glitchUntilMs: 0,
   colorFlipStartMs: 0,
   colorBurstActive: false,
+  audioPlaying: false,
   currentStrokeColor: "#6FA8DD",
-  // clickBehavior: CLICK_BEHAVIORS.COLOR_FLIP,
   motionHistory: [],
   shapes: []
 };
@@ -227,7 +226,7 @@ function getColorBurstColor(now, delayMs) {
     return portalConfig.color;
   }
 
-  if (scene.isPointerHeld) {
+  if (scene.isPointerHeld || scene.audioPlaying) {
     const loopElapsed = adjustedElapsed % totalDuration;
     const segmentPosition = loopElapsed / segmentMs;
     const segmentIndex = Math.floor(segmentPosition);
@@ -660,6 +659,7 @@ function render() {
   //   scene.currentStrokeColor = getColorBurstColor(now);
   // }
   const glitchAmount = 0;
+  scene.currentStrokeColor = scene.colorBurstActive ? getColorBurstColor(now, 0) : portalConfig.color;
 
   scene.motionHistory.push({ t: now, x: motionX, y: motionY });
   const maxHistoryMs = portalConfig.motionDelayMs * Math.max(1, portalConfig.layerCount) + 250;
@@ -767,11 +767,16 @@ function setupAudioPlayer() {
           updatePlayPauseIcon();
           startProgressTracking();
           toggleBtn.classList.add("is-playing");
+          scene.colorBurstActive = true;
+          scene.audioPlaying = true;
+          scene.colorFlipStartMs = performance.now();
         },
         onpause: function() {
           updatePlayPauseIcon();
           stopProgressTracking();
           toggleBtn.classList.remove("is-playing");
+          scene.colorBurstActive = false;
+          scene.audioPlaying = false;
         },
         onloaderror: function(id, error) {
           console.error("Audio load error:", error);
