@@ -730,6 +730,162 @@ function setupNotifyButtons() {
   });
 }
 
+function setupAudioPlayer() {
+  const toggleBtn = document.querySelector(".audio-toggle-btn");
+  const playBtn = document.querySelector(".audio-play-btn");
+  const progressContainer = document.querySelector(".audio-progress-container");
+  const progressFill = document.querySelector(".audio-progress-fill");
+  const volumeSlider = document.querySelector(".audio-volume-slider");
+  const volumeWaves = document.querySelectorAll(".volume-wave");
+  const miniPlayer = document.querySelector(".audio-mini-player");
+
+  if (!toggleBtn || !playBtn || !progressContainer || !progressFill || !miniPlayer) {
+    return;
+  }
+
+  let sound = null;
+  let hasStarted = false;
+  let isPlayerOpen = false;
+  let progressInterval = null;
+  let currentVolume = 0.5;
+
+  function initSound() {
+    if (sound) return;
+    try {
+      sound = new Howl({
+        src: ["assets/audio/soundtrack.mp3"],
+        html5: true,
+        loop: true,
+        volume: 0.5,
+        onload: function() {
+          updatePlayPauseIcon();
+          startProgressTracking();
+        },
+        onplay: function() {
+          updatePlayPauseIcon();
+          startProgressTracking();
+          toggleBtn.classList.add("is-playing");
+        },
+        onpause: function() {
+          updatePlayPauseIcon();
+          stopProgressTracking();
+          toggleBtn.classList.remove("is-playing");
+        },
+        onloaderror: function(id, error) {
+          console.error("Audio load error:", error);
+        }
+      });
+    } catch (e) {
+      console.error("Howler.js not available:", e);
+    }
+  }
+
+  function startPlayback() {
+    if (!sound) {
+      initSound();
+    }
+    if (sound && !hasStarted) {
+      hasStarted = true;
+      sound.play();
+    }
+  }
+
+  function updatePlayPauseIcon() {
+    if (!sound) return;
+    if (sound.playing()) {
+      playBtn.classList.add("is-playing");
+    } else {
+      playBtn.classList.remove("is-playing");
+    }
+  }
+
+  function updateVolumeIcon(vol) {
+    if (vol === 0) {
+      volumeWaves.forEach(function(w) { w.style.display = "none"; });
+    } else if (vol < 0.5) {
+      volumeWaves[0].style.display = "";
+      volumeWaves[1].style.display = "none";
+    } else {
+      volumeWaves.forEach(function(w) { w.style.display = ""; });
+    }
+  }
+
+  function startProgressTracking() {
+    stopProgressTracking();
+    progressInterval = setInterval(function() {
+      if (!sound) return;
+      const seek = sound.seek();
+      const duration = sound.duration();
+      if (duration > 0) {
+        const progress = (seek / duration) * 100;
+        progressFill.style.width = progress + "%";
+      }
+    }, 100);
+  }
+
+  function stopProgressTracking() {
+    if (progressInterval) {
+      clearInterval(progressInterval);
+      progressInterval = null;
+    }
+  }
+
+  toggleBtn.addEventListener("click", function() {
+    if (!hasStarted) {
+      startPlayback();
+      isPlayerOpen = true;
+      miniPlayer.classList.add("is-open");
+      toggleBtn.classList.add("is-open");
+    } else {
+      isPlayerOpen = !isPlayerOpen;
+      if (isPlayerOpen) {
+        miniPlayer.classList.add("is-open");
+        toggleBtn.classList.add("is-open");
+      } else {
+        miniPlayer.classList.remove("is-open");
+        toggleBtn.classList.remove("is-open");
+      }
+    }
+  });
+
+  playBtn.addEventListener("click", function() {
+    if (!sound) return;
+    if (sound.playing()) {
+      sound.pause();
+    } else {
+      sound.play();
+    }
+  });
+
+  progressContainer.addEventListener("click", function(e) {
+    if (!sound) return;
+    const rect = progressContainer.getBoundingClientRect();
+    const clickX = e.clientX - rect.left;
+    const width = rect.width;
+    const seekPosition = clickX / width;
+    const duration = sound.duration();
+    if (duration > 0) {
+      sound.seek(seekPosition * duration);
+    }
+  });
+
+  volumeSlider.addEventListener("input", function() {
+    if (!sound) return;
+    currentVolume = volumeSlider.value / 100;
+    sound.volume(currentVolume);
+    updateVolumeIcon(currentVolume);
+    updateVolumeFill();
+  });
+
+  function updateVolumeFill() {
+    const pct = volumeSlider.value;
+    volumeSlider.style.background = `linear-gradient(90deg, #e57777 ${pct}%, rgba(255, 255, 255, 0.08) ${pct}%)`;
+  }
+
+  updateVolumeIcon(currentVolume);
+  updateVolumeFill();
+}
+
 function setupRetroPreviewButtons() {
   const buttons = document.querySelectorAll(".concept-retro .btn");
 
@@ -789,7 +945,7 @@ window.matchMedia("(prefers-reduced-motion: reduce)").addEventListener("change",
 setInteractionMode();
 resize();
 setupNotifyButtons();
-// setupRetroPreviewButtons();
+setupAudioPlayer();
 loadXOutlinePath().catch((error) => {
   console.error(error);
 });
