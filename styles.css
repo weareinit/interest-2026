@@ -799,16 +799,6 @@ body {
     max-width: 42vw;
   }
 
-  .audio-volume-slider {
-    display: none;
-  }
-
-  .audio-mute-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
   .audio-progress-container {
     width: 80px;
   }
@@ -1153,4 +1143,10 @@ body {
   background: rgba(147, 147, 147, 0.25);
   color: #dddddd;
   border-color: #e0e1ce;
+}
+
+@media (max-width: 900px) {
+  .audio-volume-container {
+    display: none !important;
+  }
 }
