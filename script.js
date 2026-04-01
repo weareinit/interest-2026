@@ -736,6 +736,7 @@ function setupAudioPlayer() {
   const progressContainer = document.querySelector(".audio-progress-container");
   const progressFill = document.querySelector(".audio-progress-fill");
   const volumeSlider = document.querySelector(".audio-volume-slider");
+  const muteBtn = document.querySelector(".audio-mute-btn");
   const volumeWaves = document.querySelectorAll(".volume-wave");
   const miniPlayer = document.querySelector(".audio-mini-player");
 
@@ -746,7 +747,8 @@ function setupAudioPlayer() {
   let sound = null;
   let hasStarted = false;
   let isPlayerOpen = false;
-  let progressInterval = null;
+  let isMuted = false;
+  let progressRAF = null;
   let currentVolume = 0.5;
 
   function initSound() {
@@ -787,6 +789,7 @@ function setupAudioPlayer() {
     if (sound && !hasStarted) {
       hasStarted = true;
       sound.play();
+      startProgressTracking();
     }
   }
 
@@ -800,7 +803,7 @@ function setupAudioPlayer() {
   }
 
   function updateVolumeIcon(vol) {
-    if (vol === 0) {
+    if (vol === 0 || isMuted) {
       volumeWaves.forEach(function(w) { w.style.display = "none"; });
     } else if (vol < 0.5) {
       volumeWaves[0].style.display = "";
@@ -811,22 +814,31 @@ function setupAudioPlayer() {
   }
 
   function startProgressTracking() {
-    stopProgressTracking();
-    progressInterval = setInterval(function() {
-      if (!sound) return;
+    if (progressRAF) return;
+    function tick() {
+      if (!sound) {
+        progressRAF = null;
+        return;
+      }
       const seek = sound.seek();
       const duration = sound.duration();
-      if (duration > 0) {
+      if (duration > 0 && typeof seek === "number") {
         const progress = (seek / duration) * 100;
         progressFill.style.width = progress + "%";
       }
-    }, 100);
+      if (sound.playing()) {
+        progressRAF = requestAnimationFrame(tick);
+      } else {
+        progressRAF = null;
+      }
+    }
+    progressRAF = requestAnimationFrame(tick);
   }
 
   function stopProgressTracking() {
-    if (progressInterval) {
-      clearInterval(progressInterval);
-      progressInterval = null;
+    if (progressRAF) {
+      cancelAnimationFrame(progressRAF);
+      progressRAF = null;
     }
   }
 
@@ -854,6 +866,7 @@ function setupAudioPlayer() {
       sound.pause();
     } else {
       sound.play();
+      startProgressTracking();
     }
   });
 
@@ -870,16 +883,46 @@ function setupAudioPlayer() {
   });
 
   volumeSlider.addEventListener("input", function() {
-    if (!sound) return;
     currentVolume = volumeSlider.value / 100;
-    sound.volume(currentVolume);
+    if (sound) {
+      sound.volume(currentVolume);
+    }
     updateVolumeIcon(currentVolume);
     updateVolumeFill();
   });
 
+  volumeSlider.addEventListener("change", function() {
+    currentVolume = volumeSlider.value / 100;
+    if (sound) {
+      sound.volume(currentVolume);
+    }
+    updateVolumeIcon(currentVolume);
+    updateVolumeFill();
+  });
+
+  volumeSlider.addEventListener("touchmove", function() {
+    currentVolume = volumeSlider.value / 100;
+    if (sound) {
+      sound.volume(currentVolume);
+    }
+    updateVolumeIcon(currentVolume);
+    updateVolumeFill();
+  }, { passive: true });
+
   function updateVolumeFill() {
     const pct = volumeSlider.value;
     volumeSlider.style.background = `linear-gradient(90deg, #e57777 ${pct}%, rgba(255, 255, 255, 0.08) ${pct}%)`;
+  }
+
+  if (muteBtn) {
+    muteBtn.addEventListener("click", function() {
+      isMuted = !isMuted;
+      if (sound) {
+        sound.mute(isMuted);
+      }
+      muteBtn.classList.toggle("is-muted", isMuted);
+      updateVolumeIcon(currentVolume);
+    });
   }
 
   updateVolumeIcon(currentVolume);

@@ -607,6 +607,7 @@ body {
 }
 
 .btn-terminal {
+  position: relative;
   font-family: "IBM Plex Mono", "Consolas", monospace;
   font-weight: 600;
   letter-spacing: 0.06em;
@@ -614,11 +615,21 @@ body {
   background:
     linear-gradient(180deg, rgba(21, 138, 222, 0.167), rgba(95, 199, 251, 0.073)),
     #080711;
-  border: 2px solid #e57777; /* #a0a0a0 #0ebe28 */
+  border: 2px solid #e57777;
   outline: 1px solid #8c8eb3;
   outline-offset: -5px;
-  clip-path: polygon(0 5px, 5px 5px, 5px 0, calc(100% - 5px) 0, calc(100% - 5px) 5px, 100% 5px, 100% calc(100% - 5px), calc(100% - 5px) calc(100% - 5px), calc(100% - 5px) 100%, 5px 100%, 5px calc(100% - 5px), 0 calc(100% - 5px));
   box-shadow: 0 0 0 1px rgba(78, 93, 191, 0.25) inset, 0 0 0 1px rgba(211, 155, 52, 0.35);
+  overflow: hidden;
+}
+
+.btn-terminal::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  clip-path: polygon(0 5px, 5px 5px, 5px 0, calc(100% - 5px) 0, calc(100% - 5px) 5px, 100% 5px, 100% calc(100% - 5px), calc(100% - 5px) calc(100% - 5px), calc(100% - 5px) 100%, 5px 100%, 5px calc(100% - 5px), 0 calc(100% - 5px));
+  background: inherit;
+  z-index: 0;
+  pointer-events: none;
 }
 
 .btn-terminal::after {
@@ -627,6 +638,13 @@ body {
   margin-left: 0.28em;
   color: #e1cca7;
   animation: terminal-cursor 520ms steps(1, end) infinite;
+  position: relative;
+  z-index: 1;
+}
+
+.btn-terminal .btn-text {
+  position: relative;
+  z-index: 1;
 }
 
 .btn-terminal:hover {
@@ -780,6 +798,20 @@ body {
     height: clamp(21px, 5.4vw, 33px);
     max-width: 42vw;
   }
+
+  .audio-volume-slider {
+    display: none;
+  }
+
+  .audio-mute-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .audio-progress-container {
+    width: 80px;
+  }
 }
 
 .audio-player-wrapper {
@@ -794,6 +826,7 @@ body {
 }
 
 .audio-toggle-btn {
+  position: relative;
   width: 36px;
   height: 36px;
   border: 2px solid #e57777;
@@ -809,9 +842,24 @@ body {
   justify-content: center;
   transition: background 180ms ease, border-color 180ms ease, color 180ms ease;
   flex-shrink: 0;
-  clip-path: polygon(0 5px, 5px 5px, 5px 0, calc(100% - 5px) 0, calc(100% - 5px) 5px, 100% 5px, 100% calc(100% - 5px), calc(100% - 5px) calc(100% - 5px), calc(100% - 5px) 100%, 5px 100%, 5px calc(100% - 5px), 0 calc(100% - 5px));
   box-shadow: 0 0 0 1px rgba(78, 93, 191, 0.25) inset, 0 0 0 1px rgba(211, 155, 52, 0.35);
   animation: pulse-btn 1.5s ease-in-out infinite;
+  overflow: hidden;
+}
+
+.audio-toggle-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  clip-path: polygon(0 5px, 5px 5px, 5px 0, calc(100% - 5px) 0, calc(100% - 5px) 5px, 100% 5px, 100% calc(100% - 5px), calc(100% - 5px) calc(100% - 5px), calc(100% - 5px) 100%, 5px 100%, 5px calc(100% - 5px), 0 calc(100% - 5px));
+  background: inherit;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.audio-toggle-btn .audio-icon {
+  position: relative;
+  z-index: 1;
 }
 
 .audio-toggle-btn.is-playing {
@@ -845,7 +893,6 @@ body {
   background:
     linear-gradient(180deg, rgba(21, 138, 222, 0.167), rgba(95, 199, 251, 0.073)),
     #080711;
-  clip-path: polygon(0 5px, 5px 5px, 5px 0, calc(100% - 5px) 0, calc(100% - 5px) 5px, 100% 5px, 100% calc(100% - 5px), calc(100% - 5px) calc(100% - 5px), calc(100% - 5px) 100%, 5px 100%, 5px calc(100% - 5px), 0 calc(100% - 5px));
   box-shadow: 0 0 0 1px rgba(78, 93, 191, 0.25) inset, 0 0 0 1px rgba(211, 155, 52, 0.35);
   opacity: 0;
   visibility: hidden;
@@ -855,6 +902,21 @@ body {
   overflow: hidden;
 }
 
+.audio-mini-player::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  clip-path: polygon(0 5px, 5px 5px, 5px 0, calc(100% - 5px) 0, calc(100% - 5px) 5px, 100% 5px, 100% calc(100% - 5px), calc(100% - 5px) calc(100% - 5px), calc(100% - 5px) 100%, 5px 100%, 5px calc(100% - 5px), 0 calc(100% - 5px));
+  background: inherit;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.audio-mini-player > * {
+  position: relative;
+  z-index: 1;
+}
+
 .audio-mini-player.is-open {
   opacity: 1;
   visibility: visible;
@@ -862,6 +924,7 @@ body {
 }
 
 .audio-play-btn {
+  position: relative;
   width: 28px;
   height: 28px;
   border: 1px solid #8c8eb3;
@@ -873,7 +936,23 @@ body {
   justify-content: center;
   flex-shrink: 0;
   transition: background 180ms ease, color 180ms ease, border-color 180ms ease;
+  overflow: hidden;
+}
+
+.audio-play-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
   clip-path: polygon(0 3px, 3px 3px, 3px 0, calc(100% - 3px) 0, calc(100% - 3px) 3px, 100% 3px, 100% calc(100% - 3px), calc(100% - 3px) calc(100% - 3px), calc(100% - 3px) 100%, 3px 100%, 3px calc(100% - 3px), 0 calc(100% - 3px));
+  background: inherit;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.audio-play-btn svg {
+  position: relative;
+  z-index: 1;
+  display: block;
 }
 
 .audio-play-btn:hover {
@@ -902,6 +981,8 @@ body {
   background: #e1cca7;
   margin-left: 4px;
   animation: cursor-blink 520ms steps(1, end) infinite;
+  position: relative;
+  z-index: 1;
 }
 
 .audio-play-btn.is-playing::after {
@@ -987,7 +1068,12 @@ body {
   border: 1px solid rgba(140, 142, 179, 0.4);
   outline: none;
   cursor: pointer;
-  clip-path: polygon(0 2px, 2px 2px, 2px 0, calc(100% - 2px) 0, calc(100% - 2px) 2px, 100% 2px, 100% calc(100% - 2px), calc(100% - 2px) calc(100% - 2px), calc(100% - 2px) 100%, 2px 100%, 2px calc(100% - 2px), 0 calc(100% - 2px));
+}
+
+.audio-volume-slider::-webkit-slider-runnable-track {
+  -webkit-appearance: none;
+  height: 6px;
+  background: transparent;
 }
 
 .audio-volume-slider::-webkit-slider-thumb {
@@ -995,10 +1081,16 @@ body {
   appearance: none;
   width: 10px;
   height: 10px;
+  margin-top: -3px;
   background: #e57777;
   cursor: pointer;
   border: 1px solid #8c8eb3;
   clip-path: polygon(0 2px, 2px 2px, 2px 0, calc(100% - 2px) 0, calc(100% - 2px) 2px, 100% 2px, 100% calc(100% - 2px), calc(100% - 2px) calc(100% - 2px), calc(100% - 2px) 100%, 2px 100%, 2px calc(100% - 2px), 0 calc(100% - 2px));
+}
+
+.audio-volume-slider::-moz-range-track {
+  height: 6px;
+  background: transparent;
 }
 
 .audio-volume-slider::-moz-range-thumb {
@@ -1012,4 +1104,53 @@ body {
 
 .audio-volume-slider:hover {
   border-color: rgba(224, 225, 206, 0.6);
+}
+
+.audio-mute-btn {
+  display: none;
+  width: 28px;
+  height: 28px;
+  border: 1px solid #8c8eb3;
+  background: rgba(78, 93, 191, 0.15);
+  color: #e1cca7;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 180ms ease, color 180ms ease, border-color 180ms ease;
+  overflow: hidden;
+}
+
+.audio-mute-btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  clip-path: polygon(0 3px, 3px 3px, 3px 0, calc(100% - 3px) 0, calc(100% - 3px) 3px, 100% 3px, 100% calc(100% - 3px), calc(100% - 3px) calc(100% - 3px), calc(100% - 3px) 100%, 3px 100%, 3px calc(100% - 3px), 0 calc(100% - 3px));
+  background: inherit;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.audio-mute-btn svg {
+  position: relative;
+  z-index: 1;
+  display: block;
+}
+
+.audio-mute-btn .mute-icon-muted {
+  display: none;
+}
+
+.audio-mute-btn.is-muted .mute-icon-unmuted {
+  display: none;
+}
+
+.audio-mute-btn.is-muted .mute-icon-muted {
+  display: block;
+}
+
+.audio-mute-btn:hover {
+  background: rgba(147, 147, 147, 0.25);
+  color: #dddddd;
+  border-color: #e0e1ce;
 }
