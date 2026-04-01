@@ -1,5 +1,7 @@
 const canvas = document.getElementById("x-scene");
 const ctx = canvas.getContext("2d", { alpha: true });
+const layerMaskCanvas = document.createElement("canvas");
+const layerMaskCtx = layerMaskCanvas.getContext("2d", { alpha: true });
 
 const USE_PATH_TRANSFORM = (function() {
   try {
@@ -379,6 +381,12 @@ function resize() {
   canvas.height = Math.floor(rect.height * dpr);
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
+  layerMaskCanvas.width = canvas.width;
+  layerMaskCanvas.height = canvas.height;
+  if (layerMaskCtx) {
+    layerMaskCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+
   scene.pointer.x = 0;
   scene.pointer.y = 0;
   scene.pointerTarget.x = 0;
@@ -419,31 +427,31 @@ function createTransformedPrimaryOuterPath(cx, cy, width, height, angle) {
   return createTransformedPath(xPrimaryOuterPath, xPrimaryMetrics, cx, cy, width, height, angle);
 }
 
-function drawWithTransform(pathOrInfo, drawFn) {
+function drawWithTransform(pathOrInfo, drawFn, targetCtx = ctx) {
   if (USE_PATH_TRANSFORM) {
     drawFn(pathOrInfo);
   } else {
-    ctx.save();
-    ctx.transform(
+    targetCtx.save();
+    targetCtx.transform(
       pathOrInfo.matrix.a, pathOrInfo.matrix.b,
       pathOrInfo.matrix.c, pathOrInfo.matrix.d,
       pathOrInfo.matrix.e, pathOrInfo.matrix.f
     );
     drawFn(pathOrInfo.path);
-    ctx.restore();
+    targetCtx.restore();
   }
 }
 
-function clipWithTransform(pathOrInfo, fillRule) {
+function clipWithTransform(pathOrInfo, fillRule, targetCtx = ctx) {
   if (USE_PATH_TRANSFORM) {
-    ctx.clip(pathOrInfo, fillRule);
+    targetCtx.clip(pathOrInfo, fillRule);
   } else {
-    ctx.transform(
+    targetCtx.transform(
       pathOrInfo.matrix.a, pathOrInfo.matrix.b,
       pathOrInfo.matrix.c, pathOrInfo.matrix.d,
       pathOrInfo.matrix.e, pathOrInfo.matrix.f
     );
-    ctx.clip(pathOrInfo.path, fillRule);
+    targetCtx.clip(pathOrInfo.path, fillRule);
   }
 }
 
@@ -463,12 +471,12 @@ function drawPrimaryLayer(layer) {
 
     drawWithTransform(transformed, function(path) {
       if (part.fill && part.fill.trim().toLowerCase() !== "none") {
-        ctx.fillStyle = part.fill;
+        ctx.fillStyle = scene.currentStrokeColor;
         ctx.fill(path, "evenodd");
       }
 
       if (part.stroke !== "none") {
-        ctx.strokeStyle = part.stroke;
+        ctx.strokeStyle = scene.currentStrokeColor;
         ctx.lineWidth = Math.max(1, part.strokeWidth * scaleStroke);
         ctx.stroke(path);
       }
@@ -513,22 +521,16 @@ function drawShape(shape, motionX, motionY, idleDrift, glitchAmount, now) {
 
     const layerCx = baseCx + offsetStepX * i - delayedMotion.x * motionMulX;
     const layerCy = baseCy + offsetStepY * i - delayedMotion.y * motionMulY;
-    const layerWidth = shape.width * scale;
-    const layerHeight = shape.height * scale;
-    // const layerGlitchScale = glitchAmount * (1 + i * portalConfig.glitchLayerVariance);
-    // const jitterX = randomRange(-portalConfig.glitchMaxOffsetPx, portalConfig.glitchMaxOffsetPx) * layerGlitchScale;
-    // const jitterY = randomRange(-portalConfig.glitchMaxOffsetPx, portalConfig.glitchMaxOffsetPx) * layerGlitchScale;
-    // const jitterAngle = randomRange(-portalConfig.glitchMaxAngle, portalConfig.glitchMaxAngle) * layerGlitchScale;
-    // const jitteredCx = layerCx + jitterX;
-    // const jitteredCy = layerCy + jitterY;
-    // const jitteredAngle = layerAngle + jitterAngle;
-    const jitteredCx = layerCx;
-    const jitteredCy = layerCy;
-    const jitteredAngle = layerAngle;
     const layerStroke =
       i === 0
         ? shape.stroke
         : Math.max(portalConfig.minStroke, shape.stroke * Math.pow(portalConfig.strokeDecay, i));
+    
+    const layerWidth = shape.width * scale;
+    const layerHeight = shape.height * scale;
+    const jitteredCx = layerCx;
+    const jitteredCy = layerCy;
+    const jitteredAngle = layerAngle;
 
     layers.push({
       cx: jitteredCx,
@@ -549,56 +551,94 @@ function drawShape(shape, motionX, motionY, idleDrift, glitchAmount, now) {
 
   drawPrimaryLayer(layers[0]);
 
-  let clipDepth = 0;
+  if (layerMaskCtx) {
+    const dpr = scene.width > 0 ? canvas.width / scene.width : 1;
 
-  for (let i = 1; i < layers.length; i += 1) {
-    if (USE_PATH_TRANSFORM) {
-      ctx.save();
-      clipDepth += 1;
-      ctx.clip(layers[i - 1].outerPath, "nonzero");
-    } else {
-      ctx.save();
-      clipDepth += 1;
-      clipWithTransform(layers[i - 1].outerPath, "nonzero");
+    for (let i = 1; i < layers.length; i += 1) {
+      layerMaskCtx.setTransform(1, 0, 0, 1, 0, 0);
+      layerMaskCtx.clearRect(0, 0, layerMaskCanvas.width, layerMaskCanvas.height);
+      layerMaskCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      layerMaskCtx.globalCompositeOperation = "source-over";
+      layerMaskCtx.globalAlpha = layers[i].alpha;
+      layerMaskCtx.strokeStyle = layers[i].color;
+      layerMaskCtx.lineWidth = layers[i].stroke;
+      drawWithTransform(layers[i].path, function(path) {
+        layerMaskCtx.stroke(path);
+      }, layerMaskCtx);
+
+      for (let j = 0; j < i; j += 1) {
+        layerMaskCtx.globalCompositeOperation = "destination-in";
+        layerMaskCtx.globalAlpha = 1;
+        layerMaskCtx.fillStyle = "#fff";
+        drawWithTransform(layers[j].outerPath, function(path) {
+          layerMaskCtx.fill(path, "nonzero");
+        }, layerMaskCtx);
+
+        layerMaskCtx.globalCompositeOperation = "destination-out";
+        layerMaskCtx.globalAlpha = 1;
+        layerMaskCtx.strokeStyle = "#fff";
+        layerMaskCtx.lineWidth = layers[j].stroke + 1;
+        drawWithTransform(layers[j].outerPath, function(path) {
+          layerMaskCtx.stroke(path);
+        }, layerMaskCtx);
+      }
+
+      layerMaskCtx.globalCompositeOperation = "source-over";
+      ctx.drawImage(layerMaskCanvas, 0, 0, scene.width, scene.height);
+
+      // if (glitchAmount > 0) {
+      //   const chromaScale = glitchAmount * (1 + i * portalConfig.glitchLayerVariance);
+      //   const chromaSplit = portalConfig.glitchChromaticSplitPx * chromaScale;
+      //   const chromaPathA = createTransformedXPath(
+      //     layers[i].cx - chromaSplit,
+      //     layers[i].cy,
+      //     layers[i].width,
+      //     layers[i].height,
+      //     layers[i].angle
+      //   );
+      //   const chromaPathB = createTransformedXPath(
+      //     layers[i].cx + chromaSplit,
+      //     layers[i].cy,
+      //     layers[i].width,
+      //     layers[i].height,
+      //     layers[i].angle
+      //   );
+
+      //   ctx.globalAlpha = layers[i].alpha * portalConfig.glitchChromaticAlpha;
+      //   ctx.strokeStyle = portalConfig.glitchChromaticColorA;
+      //   ctx.stroke(chromaPathA);
+      //   ctx.strokeStyle = portalConfig.glitchChromaticColorB;
+      //   ctx.stroke(chromaPathB);
+      // }
+    }
+  } else {
+    let clipDepth = 0;
+
+    for (let i = 1; i < layers.length; i += 1) {
+      if (USE_PATH_TRANSFORM) {
+        ctx.save();
+        clipDepth += 1;
+        ctx.clip(layers[i - 1].outerPath, "nonzero");
+      } else {
+        ctx.save();
+        clipDepth += 1;
+        clipWithTransform(layers[i - 1].outerPath, "nonzero");
+      }
+
+      ctx.strokeStyle = layers[i].color;
+      ctx.lineWidth = layers[i].stroke;
+      ctx.globalAlpha = layers[i].alpha;
+
+      drawWithTransform(layers[i].path, function(path) {
+        ctx.stroke(path);
+      });
     }
 
-    ctx.strokeStyle = layers[i].color;
-    ctx.lineWidth = layers[i].stroke;
-    ctx.globalAlpha = layers[i].alpha;
-
-    drawWithTransform(layers[i].path, function(path) {
-      ctx.stroke(path);
-    });
-
-    // if (glitchAmount > 0) {
-    //   const chromaScale = glitchAmount * (1 + i * portalConfig.glitchLayerVariance);
-    //   const chromaSplit = portalConfig.glitchChromaticSplitPx * chromaScale;
-    //   const chromaPathA = createTransformedXPath(
-    //     layers[i].cx - chromaSplit,
-    //     layers[i].cy,
-    //     layers[i].width,
-    //     layers[i].height,
-    //     layers[i].angle
-    //   );
-    //   const chromaPathB = createTransformedXPath(
-    //     layers[i].cx + chromaSplit,
-    //     layers[i].cy,
-    //     layers[i].width,
-    //     layers[i].height,
-    //     layers[i].angle
-    //   );
-
-    //   ctx.globalAlpha = layers[i].alpha * portalConfig.glitchChromaticAlpha;
-    //   ctx.strokeStyle = portalConfig.glitchChromaticColorA;
-    //   ctx.stroke(chromaPathA);
-    //   ctx.strokeStyle = portalConfig.glitchChromaticColorB;
-    //   ctx.stroke(chromaPathB);
-    // }
-  }
-
-  while (clipDepth > 0) {
-    ctx.restore();
-    clipDepth -= 1;
+    while (clipDepth > 0) {
+      ctx.restore();
+      clipDepth -= 1;
+    }
   }
 
   ctx.globalAlpha = 1;
