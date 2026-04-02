@@ -256,6 +256,27 @@ body {
   justify-content: center;
 }
 
+.organized-by-wrapper {
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  width: max-content;
+}
+
+.organized-by-wrapper .sponsor-logo {
+  margin-top: 4px;
+}
+
+.organized-by {
+  margin: 0 0 -2px 0;
+  font-size: clamp(9px, 1.2vw, 11px);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(232, 229, 255, 0.9);
+  font-family: "Orbitron", "Segoe UI", sans-serif;
+  text-shadow: 0 0 5px rgba(0,0,0,0.9);
+}
+
 .sponsor-logo {
   height: clamp(24px, 3.3vw, 48px);
   width: auto;
