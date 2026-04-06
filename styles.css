@@ -218,7 +218,7 @@ body {
   letter-spacing: 0.02em;
   text-transform: uppercase;
   color: #F8DC73;
-  text-shadow: 0 0px 5px rgba(0, 0, 0, 0.75);
+  text-shadow: 0 0px 5px rgba(0, 0, 0, 0.8);
   white-space: nowrap;
 }
 
@@ -794,6 +794,7 @@ body {
   }
 
   .notify-lab {
+    top: calc(var(--rect-center-y) + var(--rect-height) / 2 + clamp(76px, 9vw, 120px));
     width: min(390px, 92vw);
     gap: 8px;
   }
