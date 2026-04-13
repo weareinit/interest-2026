@@ -282,7 +282,10 @@ body {
   width: auto;
   max-width: min(210px, 27vw);
   object-fit: contain;
-  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.55));
+  filter:
+    drop-shadow(0 0 0.8px rgba(0, 0, 0, 0.95))
+    drop-shadow(0 1px 1.2px rgba(0, 0, 0, 0.85))
+    drop-shadow(0 2px 2.2px rgba(0, 0, 0, 0.62));
 }
 
 .concept {
