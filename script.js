@@ -47,14 +47,6 @@ const portalConfig = {
   innerAngleFactor: 0.00035,
   minStroke: 2.1,
   strokeDecay: 0.78,
-  glitchDurationMs: 180,
-  glitchMaxOffsetPx: 18,
-  glitchMaxAngle: 0.11,
-  glitchLayerVariance: 0.18,
-  glitchChromaticSplitPx: 10,
-  glitchChromaticAlpha: 0.65,
-  glitchChromaticColorA: "#ff365b",
-  glitchChromaticColorB: "#2ee6ff",
   colorBurstPalette: ["#ff315f", "#ff8b2a", "#ffe75b", "#4eff88", "#2ee6ff", "#6e7bff", "#c66bff"],
   colorBurstSegmentMs: 200,
   idleAutoMotionAmpX: 0.22,
@@ -62,11 +54,6 @@ const portalConfig = {
   idleAutoMotionSpeed: 0.00022,
   color: "#6FA8DD"
 };
-
-// const CLICK_BEHAVIORS = {
-//   COLOR_FLIP: "color-flip",
-//   GLITCH: "glitch"
-// };
 
 const scene = {
   width: 0,
@@ -484,7 +471,7 @@ function drawPrimaryLayer(layer) {
   }
 }
 
-function drawShape(shape, motionX, motionY, idleDrift, glitchAmount, now) {
+function drawShape(shape, motionX, motionY, idleDrift, now) {
   if (!xOutlinePath || !xOutlineOuterPath || !xPrimaryOuterPath) {
     return;
   }
@@ -587,30 +574,6 @@ function drawShape(shape, motionX, motionY, idleDrift, glitchAmount, now) {
       layerMaskCtx.globalCompositeOperation = "source-over";
       ctx.drawImage(layerMaskCanvas, 0, 0, scene.width, scene.height);
 
-      // if (glitchAmount > 0) {
-      //   const chromaScale = glitchAmount * (1 + i * portalConfig.glitchLayerVariance);
-      //   const chromaSplit = portalConfig.glitchChromaticSplitPx * chromaScale;
-      //   const chromaPathA = createTransformedXPath(
-      //     layers[i].cx - chromaSplit,
-      //     layers[i].cy,
-      //     layers[i].width,
-      //     layers[i].height,
-      //     layers[i].angle
-      //   );
-      //   const chromaPathB = createTransformedXPath(
-      //     layers[i].cx + chromaSplit,
-      //     layers[i].cy,
-      //     layers[i].width,
-      //     layers[i].height,
-      //     layers[i].angle
-      //   );
-
-      //   ctx.globalAlpha = layers[i].alpha * portalConfig.glitchChromaticAlpha;
-      //   ctx.strokeStyle = portalConfig.glitchChromaticColorA;
-      //   ctx.stroke(chromaPathA);
-      //   ctx.strokeStyle = portalConfig.glitchChromaticColorB;
-      //   ctx.stroke(chromaPathB);
-      // }
     }
   } else {
     let clipDepth = 0;
@@ -643,22 +606,6 @@ function drawShape(shape, motionX, motionY, idleDrift, glitchAmount, now) {
 
   ctx.globalAlpha = 1;
 
-//   for (let i = 1; i <= shape.nestCount; i += 1) {
-//     const f = 1 - shape.step * i;
-//     if (f <= 0.22) {
-//       break;
-//     }
-
-//     const nestedYShift = 0;
-//     drawXShape(
-//       cx,
-//       cy + nestedYShift,
-//       shape.width * f,
-//       shape.height * f,
-//       Math.max(1.4, shape.stroke * (0.93 - i * 0.08)),
-//       angle + i * 0.003
-//     );
-//   }
 }
 
 function render() {
@@ -690,15 +637,6 @@ function render() {
   const motionX = scene.pointer.x * maxOffset * pointerScale;
   const motionY = scene.pointer.y * maxOffset * 0.6 * pointerScale;
 
-  // let glitchAmount = 0;
-  // if (scene.clickBehavior === CLICK_BEHAVIORS.GLITCH) {
-  //   const glitchProgress = clamp((scene.glitchUntilMs - now) / portalConfig.glitchDurationMs, 0, 1);
-  //   glitchAmount = scene.reduceMotion ? glitchProgress * 0.45 : glitchProgress;
-  //   scene.currentStrokeColor = portalConfig.color;
-  // } else {
-  //   scene.currentStrokeColor = getColorBurstColor(now);
-  // }
-  const glitchAmount = 0;
   scene.currentStrokeColor = scene.colorBurstActive ? getColorBurstColor(now, 0) : portalConfig.color;
 
   scene.motionHistory.push({ t: now, x: motionX, y: motionY });
@@ -708,7 +646,7 @@ function render() {
   }
 
   for (const shape of scene.shapes) {
-    drawShape(shape, motionX, motionY, idleScale, glitchAmount, now);
+    drawShape(shape, motionX, motionY, idleScale, now);
   }
 
   requestAnimationFrame(render);
@@ -727,11 +665,6 @@ function onPointerMove(event) {
 }
 
 function onPointerDown() {
-  // if (scene.clickBehavior === CLICK_BEHAVIORS.GLITCH) {
-  //   scene.glitchUntilMs = performance.now() + portalConfig.glitchDurationMs;
-  //   return;
-  // }
-
   scene.isPointerHeld = true;
   scene.colorBurstActive = true;
   scene.colorFlipStartMs = performance.now();
@@ -740,19 +673,6 @@ function onPointerDown() {
 function onPointerUp() {
   scene.isPointerHeld = false;
 }
-
-// function onKeyDown(event) {
-//   if (event.key.toLowerCase() !== "p") {
-//     return;
-//   }
-
-//   scene.clickBehavior =
-//     scene.clickBehavior === CLICK_BEHAVIORS.COLOR_FLIP
-//       ? CLICK_BEHAVIORS.GLITCH
-//       : CLICK_BEHAVIORS.COLOR_FLIP;
-
-//   console.info(`Click behavior: ${scene.clickBehavior}`);
-// }
 
 function setupNotifyButtons() {
   const buttons = document.querySelectorAll(".notify-btn");
@@ -974,40 +894,6 @@ function setupAudioPlayer() {
   updateVolumeFill();
 }
 
-function setupRetroPreviewButtons() {
-  const buttons = document.querySelectorAll(".concept-retro .btn");
-
-  buttons.forEach((button) => {
-    button.addEventListener("mousedown", () => {
-      button.classList.add("btn-active");
-    });
-
-    button.addEventListener("mouseup", () => {
-      button.classList.remove("btn-active");
-    });
-
-    button.addEventListener("mouseleave", () => {
-      button.classList.remove("btn-center", "btn-right", "btn-left", "btn-active");
-    });
-
-    button.addEventListener("mousemove", (event) => {
-      const leftOffset = button.getBoundingClientRect().left;
-      const buttonWidth = button.offsetWidth;
-      const pointerX = event.pageX;
-
-      let nextClass = "btn-center";
-      if (pointerX < leftOffset + 0.3 * buttonWidth) {
-        nextClass = "btn-left";
-      } else if (pointerX > leftOffset + 0.65 * buttonWidth) {
-        nextClass = "btn-right";
-      }
-
-      button.classList.remove("btn-center", "btn-right", "btn-left");
-      button.classList.add(nextClass);
-    });
-  });
-}
-
 function setInteractionMode() {
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   const coarsePointer = window.matchMedia("(hover: none), (pointer: coarse)").matches;
@@ -1026,7 +912,6 @@ window.addEventListener("pointermove", onPointerMove);
 window.addEventListener("pointerdown", onPointerDown);
 window.addEventListener("pointerup", onPointerUp);
 window.addEventListener("pointercancel", onPointerUp);
-// window.addEventListener("keydown", onKeyDown);
 window.matchMedia("(hover: none), (pointer: coarse)").addEventListener("change", setInteractionMode);
 window.matchMedia("(prefers-reduced-motion: reduce)").addEventListener("change", setInteractionMode);
 
