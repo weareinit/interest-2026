@@ -33,7 +33,6 @@ const portalConfig = {
   shapeWidthScale: 1.0,
   shapeHeightScale: 1.0,
   topPad: -50,
-  leftPad: -150,
   offsetStepXFactor: 0.09,
   offsetStepYFactor: 0,
   innerScaleStart: 0.63,
@@ -167,10 +166,6 @@ function getDelayedMotion(delayMs, fallbackX, fallbackY) {
   }
 
   return { x: history[0].x, y: history[0].y };
-}
-
-function randomRange(min, max) {
-  return min + Math.random() * (max - min);
 }
 
 function hexToRgb(hex) {
